@@ -12,7 +12,6 @@ import (
 var StoragePath = "/tmp"
 
 func JSON(w http.ResponseWriter, data interface{}) {
-
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	b, err := json.Marshal(data)
 
@@ -21,6 +20,7 @@ func JSON(w http.ResponseWriter, data interface{}) {
 		JSON(w, map[string]string{"error": err.Error()})
 		return
 	}
+
 	w.Write(b)
 }
 

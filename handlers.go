@@ -48,5 +48,6 @@ func Set(ctx context.Context, key string, value string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
