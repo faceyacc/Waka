@@ -1,12 +1,64 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi"
 )
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	JSON(w, map[string]string{"hello": "world"})
+}
+
+func getKey(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+
+	data, err := Get(r.Context(), key)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		JSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Write([]byte(data))
+}
+
+func deleteKey(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+
+	err := Delete(r.Context(), key)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		JSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	JSON(w, map[string]string{"status": "success"})
+}
+
+func postKey(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		JSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	err = Set(r.Context(), key, string(body))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		JSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	JSON(w, map[string]string{"status": "success"})
+}
 
 func main() {
 	port := "8080"
