@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +12,7 @@ import (
 )
 
 func TestJSON(t *testing.T) {
+	t.Parallel()
 
 	// Construct header to test
 	header := http.Header{}
@@ -56,7 +60,50 @@ func TestJSON(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	t.Fatal("not implemented")
+	t.Parallel()
+
+	// Simulate loadData() by creating a test data file
+	makeStorage(t)
+	defer cleanupStorage(t)
+
+	kvStore := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	encodedStore := map[string]string{}
+
+	for key, value := range kvStore {
+		// Simulating encode() to marshall input in JSON
+		encodedKey := base64.URLEncoding.EncodeToString([]byte(key))
+		encodedValue := base64.URLEncoding.EncodeToString([]byte(value))
+		encodedStore[encodedKey] = encodedValue
+	}
+
+	fileContents, _ := json.Marshal(encodedStore)
+	os.WriteFile(StoragePath+"/data.json", fileContents, 0644)
+
+	// Create
+	testCases := []struct {
+		in  string
+		out string
+		err error
+	}{
+		{"key1", "value1", nil},
+		{"key2", "value2", nil},
+		{"key4", "", nil},
+	}
+
+	for _, test := range testCases {
+
+		got, err := Get(context.Background(), test.in)
+		if err != test.err {
+			t.Errorf("Error did not match expected. Got %s, expected: %s", err, test.err)
+		}
+		if got != test.out {
+			t.Errorf("Got %s, expected %s", got, test.out)
+		}
+	}
 }
 
 // Helper function to create storage path
