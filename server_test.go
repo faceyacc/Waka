@@ -106,19 +106,70 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func BenchmarkGet(b *testing.B) {
+
+	// Simulate loadData() by creating a test data file
+	makeStorage(b)
+	defer cleanupStorage(b)
+
+	kvStore := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	encodedStore := map[string]string{}
+
+	for key, value := range kvStore {
+		// Simulating encode() to marshall input in JSON
+		encodedKey := base64.URLEncoding.EncodeToString([]byte(key))
+		encodedValue := base64.URLEncoding.EncodeToString([]byte(value))
+		encodedStore[encodedKey] = encodedValue
+	}
+
+	fileContents, _ := json.Marshal(encodedStore)
+	os.WriteFile(StoragePath+"/data.json", fileContents, 0644)
+
+	// Create
+	testCases := []struct {
+		in  string
+		out string
+		err error
+	}{
+		{"key1", "value1", nil},
+		{"key2", "value2", nil},
+		{"key4", "", nil},
+	}
+
+	for _, test := range testCases {
+
+		got, err := Get(context.Background(), test.in)
+		if err != test.err {
+			b.Errorf("Error did not match expected. Got %s, expected: %s", err, test.err)
+		}
+		if got != test.out {
+			b.Errorf("Got %s, expected %s", got, test.out)
+		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Get(context.Background(), "key1")
+	}
+}
+
 // Helper function to create storage path
-func makeStorage(t *testing.T) {
+func makeStorage(tb testing.TB) {
 	err := os.Mkdir("testdata", 0755)
 	if err != nil && !os.IsExist(err) {
-		t.Fatalf("Couldn't create directory testdata: %s", err)
+		tb.Fatalf("Couldn't create directory testdata: %s", err)
 	}
 	StoragePath = "testdata"
 }
 
 // Helper function to delete storage path
-func cleanupStorage(t *testing.T) {
+func cleanupStorage(tb testing.TB) {
 	if err := os.RemoveAll(StoragePath); err != nil {
-		t.Errorf("Failed to delete storage path %s", StoragePath)
+		tb.Errorf("Failed to delete storage path %s", StoragePath)
 	}
 	StoragePath = "/tmp/kv"
 }
