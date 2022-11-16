@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -58,6 +59,19 @@ func TestGet(t *testing.T) {
 	t.Fatal("not implemented")
 }
 
-// Helper functions to create and delete temporary storage path
-func makeStorage(t *testing.T)    {}
-func cleanupStorage(t *testing.T) {}
+// Helper function to create storage path
+func makeStorage(t *testing.T) {
+	err := os.Mkdir("testdata", 0755)
+	if err != nil && !os.IsExist(err) {
+		t.Fatalf("Couldn't create directory testdata: %s", err)
+	}
+	StoragePath = "testdata"
+}
+
+// Helper function to delete storage path
+func cleanupStorage(t *testing.T) {
+	if err := os.RemoveAll(StoragePath); err != nil {
+		t.Errorf("Failed to delete storage path %s", StoragePath)
+	}
+	StoragePath = "/tmp/kv"
+}
