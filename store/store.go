@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -39,11 +40,11 @@ type Config struct {
 	fsm  *fsm
 }
 
-func (c *Config) Set(ctx context.Context, key, value string) error {}
+func (c *Config) Set(ctx context.Context, key string, value string) error {}
 
-func (c *Config) Delete(ctx context.Context, key, value string) error {}
+func (c *Config) Delete(ctx context.Context, key string) error {}
 
-func (c *Config) Get(ctx context.Context, key, value string) (string, error) {}
+func (c *Config) Get(ctx context.Context, key) (string, error) {}
 
 // NewRaftSetup configures a raft server
 func NewRaftSetup(storagePath, host, raftPort, raftLeader string) (*Config, error) {
@@ -206,4 +207,13 @@ func (cfg *Config) Middleware(h http.Handler) http.Handler {
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+// Utility function to transform raft address to a url
+func RaftAddressToHTTP(ldr raft.ServerAddress) *url.URL {
+	url, err := url.Parse(string(ldr))
+	if err != nil {
+		fmt.Errorf("Address not found %w", err)
+	}
+	return url
 }
