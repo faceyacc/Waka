@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -40,11 +42,246 @@ type Config struct {
 	fsm  *fsm
 }
 
-func (c *Config) Set(ctx context.Context, key string, value string) error {}
+type Command struct {
+	Action string
+	Key    string
+	Value  string
+}
 
-func (c *Config) Delete(ctx context.Context, key string) error {}
+func (f *fsm) Apply(l *raft.Log) interface{} {
+	log.Info("fsm.Apply called", "type", hclog.Fmt("%d", l.Type), "data", hclog.Fmt("%s", l.Data))
 
-func (c *Config) Get(ctx context.Context, key) (string, error) {}
+	var cmd Command
+
+	if err := json.Unmarshal(l.Data, &cmd); err != nil {
+		log.Error("failed command unmarshal", "error", err)
+		return nil
+	}
+
+	ctx := context.Background()
+	switch cmd.Action {
+	case "set":
+		return f.localSet(ctx, cmd.Key, cmd.Value)
+	case "delete":
+		return f.localDelete(ctx, cmd.Key)
+	default:
+		log.Error("unknown command", "command", cmd, "log", l)
+	}
+	return nil
+}
+
+/* Returns a snapshot of the FS
+ */
+// Note: can can change to *fsmSnapshot
+func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
+	log.Info("fsm.Snapshot called")
+	data, err := f.loadData(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	encodedData, err := encode(data)
+	if err != nil {
+		return nil, err
+	}
+	return &fsmSnapshot{data: encodedData}, nil
+}
+
+/* Pulls data out of an io pipe and writes output to a disk
+ */
+func (f *fsm) Restore(old io.ReadCloser) error {
+	log.Info("fs.Restore called")
+	b, err := ioutil.ReadAll(old)
+	if err != nil {
+		return err
+	}
+
+	data, err := decode(b)
+	if err != nil {
+		return err
+	}
+
+	return f.saveData(context.Background(), data)
+}
+
+func (f *fsm) localSet(ctx context.Context, key, value string) error {
+	data, err := f.loadData(ctx)
+	if err != nil {
+		return err
+	}
+
+	data[key] = value
+	return f.saveData(ctx, data)
+}
+
+func (f *fsm) localGet(ctx context.Context, key string) (string, error) {
+	data, err := f.loadData(ctx)
+	if err != nil {
+		return "", fmt.Errorf("load: %w", err)
+	}
+	return data[key], nil
+}
+
+func (f *fsm) localDelete(ctx context.Context, key string) error {
+	data, err := f.loadData(ctx)
+	if err != nil {
+		return nil
+	}
+	delete(data, key)
+
+	return f.saveData(ctx, data)
+}
+
+// Loads data using a Lock
+func (f *fsm) loadData(ctx context.Context) (map[string]string, error) {
+	empty := map[string]string{}
+	if f.lock == nil {
+		f.lock = flock.New(f.dataFile)
+	}
+	defer f.lock.Close()
+
+	// // Set Lock
+	locked, err := f.lock.TryLockContext(ctx, time.Millisecond)
+	if err != nil {
+		return empty, fmt.Errorf("trylock: %w", err)
+	}
+
+	if locked {
+		// Check if the file exists and create it if it's missing
+		if _, err := os.Stat(f.dataFile); os.IsNotExist(err) {
+			emptyData, err := encode(map[string]string{})
+			if err != nil {
+				return empty, fmt.Errorf("encode: %w", err)
+			}
+
+			if err := ioutil.WriteFile(f.dataFile, emptyData, 0644); err != nil {
+				return empty, fmt.Errorf("write: %w", err)
+			}
+		}
+		content, err := ioutil.ReadFile(f.dataFile)
+		if err != nil {
+			return empty, fmt.Errorf("write: %w", err)
+		}
+		if err := f.lock.Unlock(); err != nil {
+			return empty, fmt.Errorf("write: %w", err)
+		}
+		return decode(content)
+	}
+	return empty, fmt.Errorf("couldn't get lock")
+}
+
+// Saves data using a Lock
+func (f *fsm) saveData(ctx context.Context, data map[string]string) error {
+	encodedData, err := encode(data)
+	if err != nil {
+		return err
+	}
+
+	if f.lock == nil {
+		f.lock = flock.New(f.dataFile)
+	}
+	defer f.lock.Close()
+
+	// Set Lock
+	locked, err := f.lock.TryLockContext(ctx, time.Millisecond)
+	if err != nil {
+		return err
+	}
+
+	if locked {
+		if err := ioutil.WriteFile(f.dataFile, encodedData, 0644); err != nil {
+			return err
+		}
+		if err := f.lock.Unlock(); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("couldn't get lock")
+}
+
+func (s *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
+	log.Info("fsmSnapshot.Persist called")
+	// Store snapshot state
+	if _, err := sink.Write(s.data); err != nil {
+		return err
+	}
+	defer sink.Close()
+
+	return nil
+}
+
+func (s *fsmSnapshot) Release() {
+	log.Info("fsmSnapsnot.Release called")
+}
+
+func encode(data map[string]string) ([]byte, error) {
+	var encodedData map[string]string
+
+	for k, v := range data {
+		ek := base64.URLEncoding.EncodeToString([]byte(k))
+		ev := base64.URLEncoding.EncodeToString([]byte(v))
+		encodedData[ek] = ev
+	}
+	return json.Marshal(encodedData)
+}
+
+func decode(data []byte) (map[string]string, error) {
+	var jsonData map[string]string
+
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return nil, err
+	}
+
+	returnData := map[string]string{}
+	for k, v := range jsonData {
+		dk, err := base64.URLEncoding.DecodeString(k)
+		if err != nil {
+			return nil, err
+		}
+
+		dv, err := base64.URLEncoding.DecodeString(v)
+		if err != nil {
+			return nil, err
+		}
+		returnData[string(dk)] = string(dv)
+	}
+
+	return returnData, nil
+}
+
+// Set sets a value for a key
+func (cfg *Config) Set(ctx context.Context, key string, value string) error {
+	// Check to see if caller is Leader
+	if cfg.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	cmd, err := json.Marshal(Command{Action: "set", Key: key, Value: value})
+	if err != nil {
+		return fmt.Errorf("marshaling command %w", err)
+	}
+	l := cfg.raft.Apply(cmd, time.Minute)
+	return l.Error()
+}
+
+// Delete removes a key and its value from the store.
+func (cfg *Config) Delete(ctx context.Context, key string) error {
+	if cfg.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+	cmd, err := json.Marshal(Command{Action: "delete", Key: key})
+	if err != nil {
+		return fmt.Errorf("marhaling command %w", err)
+	}
+	l := cfg.raft.Apply(cmd, time.Minute)
+	return l.Error()
+}
+
+// Get gets the value for a key.
+func (cfg *Config) Get(ctx context.Context, key string) (string, error) {
+	return cfg.fsm.localGet(ctx, key)
+}
 
 // NewRaftSetup configures a raft server
 func NewRaftSetup(storagePath, host, raftPort, raftLeader string) (*Config, error) {

@@ -129,21 +129,6 @@ func main() {
 		jw.Encode(map[string]string{"status": "success"})
 	})
 
-	r.Get("/key/{key}", func(w http.ResponseWriter, r *http.Request) {
-		key := chi.URLParam(r, "key")
-
-		data, err := config.Get(r.Context(), key)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			jw := json.NewEncoder(w)
-			jw.Encode(map[string]string{"error": err.Error()})
-			return
-		}
-
-		w.Write([]byte(data))
-	})
-
 	r.Delete("/key/{key}", func(w http.ResponseWriter, r *http.Request) {
 		key := chi.URLParam(r, "key")
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -172,18 +157,5 @@ func main() {
 		w.Write([]byte(data))
 	})
 
-	r.Delete("/key/{key}", func(w http.ResponseWriter, r *http.Request) {
-		key := chi.URLParam(r, "key")
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		jw := json.NewEncoder(w)
-
-		if err := config.Delete(r.Context(), key); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			jw.Encode(map[string]string{"error": err.Error()})
-			return
-		}
-
-		jw.Encode(map[string]string{"status": "success"})
-	})
 	http.ListenAndServe(":"+port, r)
 }
