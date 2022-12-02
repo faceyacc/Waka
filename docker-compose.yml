@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  kv_0:
+    build:
+      context: .
+    environment:
+      RAFT_LEADER: ""
+      RAFT_ADDRESS: "distributed-key-value-store_kv_0_1"
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+  kv_2:
+    build:
+      context: .
+    environment:
+      RAFT_LEADER: "http://distributed-key-value-store_kv_0_1:8080"
+      RAFT_ADDRESS: "distributed-key-value-store_kv_2_1"
+    ports:
+      - "8082:8080"
+      - "8083:8081"
+  kv_4:
+    build:
+      context: .
+    environment:
+      RAFT_LEADER: "http://distributed-key-value-store_kv_0_1:8080"
+      RAFT_ADDRESS: "distributed-key-value-store_kv_4_1"
+    ports:
+      - "8084:8080"
+      - "8085:8081"
