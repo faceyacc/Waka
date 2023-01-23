@@ -1,26 +1,19 @@
 module github.com/faceyacc/go-chubby
 
-go 1.19
+go 1.16
 
 require (
+	github.com/armon/go-metrics v0.3.6 // indirect
+	github.com/fatih/color v1.10.0 // indirect
 	github.com/go-chi/chi v1.5.4
-	github.com/hashicorp/go-hclog v0.9.1
-)
-
-require (
-	github.com/armon/go-metrics v0.3.8 // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/google/uuid v1.2.0 // indirect
-	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
-	github.com/hashicorp/go-msgpack v0.5.5 // indirect
-	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
-	github.com/stretchr/testify v1.7.2 // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
-)
-
-require (
-	github.com/gofrs/flock v0.8.1
-	github.com/hashicorp/raft v1.3.11
-	github.com/hashicorp/raft-boltdb v0.0.0-20220329195025-15018e9b97e0
-	github.com/pborman/uuid v1.2.1
+	github.com/gofrs/flock v0.8.0
+	github.com/google/uuid v1.2.0
+	github.com/hashicorp/go-hclog v0.15.0
+	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
+	github.com/hashicorp/go-msgpack v1.1.5 // indirect
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/raft v1.2.0
+	github.com/hashicorp/raft-boltdb v0.0.0-20191021154308-4207f1bf0617
+	github.com/pborman/uuid v1.2.1 // indirect
+	golang.org/x/sys v0.0.0-20210326220804-49726bf1d181 // indirect
 )
