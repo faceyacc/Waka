@@ -313,7 +313,7 @@ func NewRaftSetup(storagePath, host, raftPort, raftLeader string) (*Config, erro
 	// Create a TCP transport
 	fullTarget := fmt.Sprintf("%s:%s", host, raftPort)
 
-	// Return an address of TCP end point.
+	// Return an address of TCP end point
 	addr, err := net.ResolveTCPAddr("tcp", fullTarget)
 
 	if err != nil {
