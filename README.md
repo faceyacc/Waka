@@ -20,7 +20,7 @@ go run .
 
 👤 **Ty Facey**
 
-* Website: https://ty-personal-portfolio-reny6dmry-faceyacc.vercel.app/
+* Website: https://ty-personal-portfolio.vercel.app/
 * Github: [@faceyacc](https://github.com/faceyacc)
 * LinkedIn: [@https:\/\/www.linkedin.com\/in\/ty-facey\/](https://linkedin.com/in/https:\/\/www.linkedin.com\/in\/ty-facey\/)
 
