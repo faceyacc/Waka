@@ -12,7 +12,7 @@ go run .
 ```
 
 ## Demo
-![](waka_dem.gif)
+![](waka.gif)
 
 
 
