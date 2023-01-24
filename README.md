@@ -1,33 +1,32 @@
-# Foobar
+<h1 align="center">Welcome to Waka - Distributed Key-Value Server 👋</h1>
+<p>
+</p>
 
-Foobar is a Python library for dealing with word pluralization.
-
-## Installation
-
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
-
-```bash
-pip install foobar
-```
+> Waka is distributed key-value server that leverages Consul’s (Hashicorp) implementation of the Raft Consensus algorithm. The point of the project is to see how reliable distributed systems are built. 
 
 ## Usage
+To spin up the server simple run the following command in the root directory of the project.
 
-```python
-import foobar
-
-# returns 'words'
-foobar.pluralize('word')
-
-# returns 'geese'
-foobar.pluralize('goose')
-
-# returns 'phenomenon'
-foobar.singularize('phenomena')
+```sh
+go run .
 ```
 
-## Contributing
+## Demo
+![](waka.gif)
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change.
 
-Please make sure to update tests as appropriate.
+
+## Author
+
+👤 **Ty Facey**
+
+* Website: https://ty-personal-portfolio-reny6dmry-faceyacc.vercel.app/
+* Github: [@faceyacc](https://github.com/faceyacc)
+* LinkedIn: [@https:\/\/www.linkedin.com\/in\/ty-facey\/](https://linkedin.com/in/https:\/\/www.linkedin.com\/in\/ty-facey\/)
+
+## Show your support
+
+Give a ⭐️ if this project helped you!
+
+***
+_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
