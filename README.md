@@ -1,4 +1,4 @@
-<h1 align="center">Welcome to Waka - Distributed Key-Value Server 👋</h1>
+<h1 align="center">Distributed Key-Value Server 👋</h1>
 <p>
 </p>
 
